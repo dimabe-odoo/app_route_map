@@ -8,6 +8,7 @@ import 'package:apk_route_map/pages/details_order_page.dart';
 import 'package:apk_route_map/services/route_map_service.dart';
 import 'package:apk_route_map/utils/utils.dart';
 import 'package:async_builder/async_builder.dart';
+import 'package:badges/badges.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_absolute_path/flutter_absolute_path.dart';
@@ -25,8 +26,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:map_launcher/map_launcher.dart';
-import 'package:multi_image_picker/multi_image_picker.dart';
 import 'package:smart_select/smart_select.dart';
+import 'package:toast/toast.dart';
 
 import 'home_page.dart';
 
@@ -50,7 +51,9 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
   Color red = new Color(0xffa02c2b);
   Color green = new Color(0xff09831a);
   Future<RouteMapModel> routeMap;
-  List<File> files;
+  List<String> files = [];
+  int counterImages = 0;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -94,6 +97,25 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
       title: GFListTile(
         title: Text("Detalle Hoja ${name}"),
       ),
+      actions: <Widget>[
+        GFIconButton(
+          color: blue,
+          onPressed: () {
+            setState(() {
+              Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => DetailRouteMapPage(
+                      routeMapId: widget.routeMapId,
+                      name: widget.name,
+                    ),
+                  ),
+                  (route) => false);
+            });
+          },
+          icon: Icon(Icons.refresh),
+        )
+      ],
+      elevation: 20,
     );
   }
 
@@ -101,12 +123,24 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
     return AsyncBuilder(
       future: model,
       waiting: (context) => GFLoader(),
+      error: (context, error, stackTrace) {
+        return GFLoader();
+      },
       builder: (context, RouteMapModel value) {
+        if (value.name == '') {
+          Future.delayed(Duration.zero, () async {
+            Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => HomePage(),
+                ),
+                (route) => false);
+          });
+        }
         return GFCard(
           boxFit: BoxFit.fill,
           elevation: 5.0,
           title: GFListTile(
-            titleText: "Detalle de ${widget.name}",
+            titleText: "Detalle de ${value.name}",
             avatar: GFIconBadge(
               child: Icon(FontAwesomeIcons.map),
             ),
@@ -142,12 +176,12 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
       print(line.state);
       sections.add(AccordionSection(
           rightIcon: line.state == 'ok'
-              ? Icon(FontAwesomeIcons.check,color: Colors.white)
+              ? Icon(FontAwesomeIcons.check, color: Colors.white)
               : line.state == 'parcial'
-              ? Icon(Icons.adjust_sharp,color: Colors.white)
-              : line.state == 'to_delivered'
-              ? Icon(FontAwesomeIcons.caretDown,color: Colors.white)
-              : Icon(FontAwesomeIcons.times,color: Colors.white),
+                  ? Icon(Icons.adjust_sharp, color: Colors.white)
+                  : line.state == 'to_delivered'
+                      ? Icon(FontAwesomeIcons.caretDown, color: Colors.white)
+                      : Icon(FontAwesomeIcons.times, color: Colors.white),
           flipRightIconIfOpen: line.state == 'to_delivered',
           headerBackgroundColor: line.state == 'ok'
               ? green
@@ -167,7 +201,11 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
                 color: blue,
               ),
               GFButton(
-                onPressed: () {},
+                onPressed: () {
+                  setState(() {
+                    showMap(current, line.destinyGPS);
+                  });
+                },
                 text: "GPS",
                 color: blue,
               ),
@@ -177,6 +215,7 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
                     setState(() {
                       showDialog(
                         context: context,
+                        barrierDismissible: false,
                         builder: (context) => alertDialog(line, current),
                       );
                     });
@@ -188,15 +227,23 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
     return sections;
   }
 
+  void _incrementCounter() {
+    setState(() {
+      counterImages = files.length;
+    });
+  }
+
   Widget alertDialog(RouteMapLineModel model, LatLng current) {
+    var qty = 0;
     return AlertDialog(
       title: Text("Seleccione el estado de la entrega"),
       content: Wrap(
         children: <Widget>[
           selectState(),
+          Divider(height: 20,),
           TextFormField(
             validator: (value) {
-              if(choice != 'ok' && value == ''){
+              if (choice != 'ok' && value == '') {
                 return "Debe ingresar una observacione";
               }
               return null;
@@ -206,17 +253,31 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
             decoration:
                 InputDecoration.collapsed(hintText: "Ingresar Observaciones"),
           ),
-          GFButton(
-            icon: Icon(
-              Icons.camera_alt_outlined,
-              color: Colors.white,
+          Divider(height: 20,),
+          Center(
+            child: GFButtonBadge(
+
+              blockButton: true,
+              icon: GFBadge(
+                color: Colors.white,
+                textColor: blue,
+                shape: GFBadgeShape.circle,
+                child: Text("${files.length}"),
+              ),
+              text: "Fotos",
+              onPressed: () {
+                setState(() {
+                  Navigator.of(context).pop();
+                  addImage().then((value) {
+                    qty = files.length;
+                    showDialog(
+                      context: context,
+                      builder: (context) => alertDialog(model, current),
+                    );
+                  });
+                });
+              },
             ),
-            text: "Fotos",
-            onPressed: () {
-              setState(() {
-                getImageFile().then((value) => files = value);
-              });
-            },
           )
         ],
       ),
@@ -237,12 +298,26 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
     );
   }
 
+  Future<void> addImage() async {
+    final pickedFile = await _picker.getImage(source: ImageSource.camera);
+
+    setState(() {
+      if (pickedFile != null) {
+        files.add(pickedFile.path);
+        _incrementCounter();
+      } else {
+        print('No image selected.');
+      }
+    });
+  }
+
   Widget selectState() {
     return AsyncBuilder(
       future: choices,
       waiting: (context) => Loader(),
       builder: (context, value) {
         return SmartSelect.single(
+
           onChange: (value) {
             setState(() {
               choice = value.value;
@@ -250,7 +325,7 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
           },
           value: choice,
           choiceItems: value,
-          title: "Seleccione el estado",
+          title: "Seleccione el tipo de entrega",
         );
       },
     );
@@ -258,29 +333,25 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
 
   void makeDone(RouteMapLineModel line, LatLng current, String observations,
       String state) {
-    var isComplete = false;
-    RouteMapService()
-        .makeDone(
-            line.id, current.latitude, current.longitude, state, observations)
-        .then((value) {
-      if (value['isCompleted']) {
-        isComplete = value['isComplete'];
-      }
-    }).whenComplete(() => !isComplete
-            ? Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(
-                  builder: (context) => DetailRouteMapPage(
-                    routeMapId: widget.routeMapId,
-                    name: widget.name,
-                  ),
+    if (files.length > 0) {
+      var isComplete = false;
+      RouteMapService()
+          .makeDone(line.id, current.latitude, current.longitude, state,
+              observations, files)
+          .whenComplete(() => Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => DetailRouteMapPage(
+                  routeMapId: widget.routeMapId,
+                  name: widget.name,
                 ),
-                (route) => false)
-            : Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(
-                  builder: (context) => HomePage(),
-                ),
-                (route) => false));
-    line.state = 'done';
+              ),
+              (route) => false));
+      line.state = 'done';
+      files.clear();
+    } else {
+      showAlert(context, "No ha seleccionado ninguna imagen",
+          "Debe seleccionar a menos 1 imagen");
+    }
   }
 
   Widget accordionLine(RouteMapLineModel line) {
@@ -311,17 +382,6 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
         )
       ],
     );
-  }
-
-  Future<List<File>> getImageFile() async {
-    var resultList =
-        await MultiImagePicker.pickImages(enableCamera: true, maxImages: 500);
-    List<File> listFiles = [];
-    for (var result in resultList) {
-      var path = await FlutterAbsolutePath.getAbsolutePath(result.identifier);
-      listFiles.add(File(path));
-    }
-    return listFiles;
   }
 
   void showMap(LatLng current, LatLng destiny) async {

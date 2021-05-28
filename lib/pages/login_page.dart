@@ -1,6 +1,8 @@
+import 'package:adaptive_dialog/adaptive_dialog.dart';
 import 'package:apk_route_map/bloc/login_bloc.dart';
 import 'package:apk_route_map/bloc/provider.dart';
 import 'package:apk_route_map/services/auth_service.dart';
+import 'package:apk_route_map/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:form_field_validator/form_field_validator.dart';
@@ -20,11 +22,14 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
+  var colors = const Color(0xff1f418b);
   String truck_patent;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final auth = new AuthService();
   final emailController = new TextEditingController();
   final passwordController = new TextEditingController();
+  final changePassController = new TextEditingController();
 
   _LoginPageState();
 
@@ -63,6 +68,7 @@ class _LoginPageState extends State<LoginPage> {
                       spreadRadius: 3.0)
                 ]),
             child: FormField(
+              key: _formKey,
               autovalidateMode: AutovalidateMode.onUserInteraction,
               builder: (field) {
                 return Column(
@@ -78,11 +84,8 @@ class _LoginPageState extends State<LoginPage> {
                       width: size.width - 100,
                       height: 50,
                       child: TextFormField(
-
-                        validator: EmailValidator(errorText: "este correo no es valido"),
-                        onEditingComplete: () {
-                          print(Fzregex.hasMatch(emailController.text, FzPattern.email));
-                        },
+                        validator: EmailValidator(
+                            errorText: "este correo no es valido"),
                         controller: emailController,
                         decoration: InputDecoration(
                             hintText: "Email",
@@ -104,14 +107,15 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: () {
                         setState(() {
                           auth
-                              .login(emailController.text, passwordController.text)
+                              .login(
+                                  emailController.text, passwordController.text)
                               .then((value) {
                             if (value['ok']) {
                               Navigator.of(context).pushAndRemoveUntil(
                                   MaterialPageRoute(
                                     builder: (context) => HomePage(),
                                   ),
-                                      (route) => false);
+                                  (route) => false);
                             } else {
                               Toast.show(value['message'], context);
                             }
@@ -119,17 +123,65 @@ class _LoginPageState extends State<LoginPage> {
                         });
                       },
                       text: "Iniciar Sesion",
+                      color: colors,
                     ),
+                    GFButton(
+                      child: Text('¿Olvido su contraseña?'),
+                      onPressed: () {
+                        setState(() {
+                          showDialog(
+                            context: context,
+                            builder: (context) => changePassword(context),
+                          );
+                        });
+                      },
+                      textColor: Colors.blue,
+                      color: Colors.transparent,
+                    )
                   ],
                 );
-              } ,
+              },
             ),
           ),
           SizedBox(
             height: 100.0,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget changePassword(BuildContext context) {
+    return AlertDialog(
+      title: Text("Cambio de Contrasteña"),
+      content: Column(
+        children: <Widget>[
+          TextFormField(
+            controller: changePassController,
+            decoration: InputDecoration(
+                hintText: "Correo:", prefixIcon: Icon(Icons.email)),
           )
         ],
       ),
+      scrollable: true,
+      actions: <Widget>[
+        GFButton(onPressed: () {}, text: "Cancelar"),
+        GFButton(
+            onPressed: () {
+              setState(() {
+                AuthService()
+                    .changePassword(changePassController.text)
+                    .then((value) {
+                  if (!value['ok']) {
+                    Toast.show(value['message'], context);
+                  }
+                }).whenComplete(() {
+                  showAlert(context, "Cambio de Contraseña", "Se ha enviado correo para restablecer la contraseña");
+                });
+              });
+            },
+            text: "Confirmar")
+      ],
     );
   }
 

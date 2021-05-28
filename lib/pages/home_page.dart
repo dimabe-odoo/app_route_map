@@ -3,10 +3,12 @@ import 'package:apk_route_map/models/route_map_model.dart';
 import 'package:apk_route_map/pages/details_order_page.dart';
 import 'package:apk_route_map/preferences/user_preferences.dart';
 import 'package:apk_route_map/services/route_map_service.dart';
+import 'package:apk_route_map/widgets/appbar_widget.dart';
+import 'package:apk_route_map/widgets/drawer_widget.dart';
 import 'package:async_builder/async_builder.dart';
-import 'package:expand_widget/expand_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter_slider_drawer/flutter_slider_drawer.dart';
 import 'package:flutter_swiper/flutter_swiper.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:getwidget/components/appbar/gf_appbar.dart';
@@ -34,6 +36,10 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   final _prefs = new UserPreference();
   Future<List<RouteMapModel>> routes;
+  GlobalKey<SliderMenuContainerState> _key =
+      new GlobalKey<SliderMenuContainerState>();
+  String title = "Inicio";
+  var blue = Color(0xff1f418b);
 
   @override
   void initState() {
@@ -44,7 +50,24 @@ class HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     routes = RouteMapService().getRouteMaps();
-    return Scaffold(appBar: appBar(context), body: body(context, routes));
+    Future.delayed(const Duration(seconds: 0), () async {
+      if (_prefs.token == '' || _prefs.token == null) {
+        Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => LoginPage(),
+            ),
+            (route) => false);
+      }
+    });
+    return Scaffold(
+        drawer: DrawerWidget(name: _prefs.name,email: _prefs.email != null ? _prefs.email : ''),
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(50.0),
+          child: AppbarWidget(
+            name: _prefs.name,
+          ),
+        ),
+        body: body(context, routes));
   }
 
   Widget body(BuildContext context, Future<List<RouteMapModel>> route) {
@@ -62,6 +85,7 @@ class HomePageState extends State<HomePage> {
 
   Widget list(BuildContext context, List<RouteMapModel> route) {
     return ListView.separated(
+        addAutomaticKeepAlives: true,
         itemBuilder: (context, index) {
           return GFAccordion(
             title: route[index].name,
@@ -92,25 +116,4 @@ class HomePageState extends State<HomePage> {
         separatorBuilder: (context, index) => Divider(),
         itemCount: route.length);
   }
-
-  Widget appBar(BuildContext context) {
-    return GFAppBar(
-      actions: [
-        GFIconButton(
-            icon: Icon(FontAwesomeIcons.signOutAlt),
-            onPressed: () {
-              setState(() {
-                _prefs.clearSession();
-                Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => LoginPage(),), (route) => false);
-              });
-            })
-      ],
-      title: GFListTile(
-        title: Text(
-          "Bienvenido ${_prefs.name}",
-        ),
-      ),
-    );
-  }
-
 }

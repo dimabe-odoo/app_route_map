@@ -27,6 +27,10 @@ class UserPreference {
 
   set name(String value) => _prefs.setString('name', value);
 
+  get email => _prefs.getString('email');
+
+  set email(String value) => _prefs.setString('email', value);
+
   void clearSession() {
     _prefs.clear();
   }

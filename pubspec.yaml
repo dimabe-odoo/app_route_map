@@ -42,16 +42,18 @@ dependencies:
   flutter_swiper: 
   google_maps_flutter: 
   location:
-  image_picker: 
-  multi_image_picker: 
+  image_picker: ^0.7.5+2
   flutter_absolute_path: 
   dio:
-  accordion: ^1.0.4
-  smart_select: ^4.3.2
+  accordion: 
+  smart_select: 
   geolocator:
   adaptive_dialog:
-  form_field_validator: ^1.1.0
-  fzregex: ^1.0.3
+  form_field_validator: 
+  fzregex:
+  flutter_slider_drawer:
+  owesome_validator:
+  badges:
   flutter_localizations:
     sdk: flutter
 dev_dependencies:
