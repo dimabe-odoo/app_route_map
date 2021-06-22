@@ -7,7 +7,8 @@ class RouteMapModel {
     this.sell = '',
     this.lines = const [],
     this.state = '',
-    this.name = ''
+    this.name = '',
+    this.type = ''
 });
 
   int id;
@@ -15,5 +16,6 @@ class RouteMapModel {
   String sell;
   List<RouteMapLineModel> lines;
   String state;
+  String type;
 
 }

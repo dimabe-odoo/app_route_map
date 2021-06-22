@@ -13,6 +13,7 @@ class RouteMapLineModel{
     this.state = '',
     this.observationsCompany = '',
     this.observationsDriver = '',
+    this.type = '',
     this.destinyGPS = const LatLng(0.0,0.0),
     this.productToDelivery = const []
 });
@@ -25,5 +26,6 @@ class RouteMapLineModel{
   String observationsDriver;
   String observationsCompany;
   LatLng destinyGPS;
+  String type;
   List<ProductModel> productToDelivery;
 }

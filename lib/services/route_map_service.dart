@@ -7,7 +7,7 @@ import 'package:apk_route_map/models/route_map_model.dart';
 import 'package:apk_route_map/preferences/user_preferences.dart';
 import 'package:apk_route_map/services/base_service.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_absolute_path/flutter_absolute_path.dart';
+
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
@@ -33,8 +33,9 @@ class RouteMapService extends BaseService {
       var decodedResponse = <String, dynamic>{};
       decodedResponse = json.decode(resp.body);
       if (decodedResponse.containsKey('result')) {
-        for (var item in decodedResponse['result']['result']) {
-          routes.add(RouteMapModel(id: item['Id'], name: item['Name']));
+        for (var item in decodedResponse['result']) {
+          routes.add(RouteMapModel(
+              id: item['id'], name: item['display_name'], type: item['type_of_map']));
         }
         return routes;
       }
@@ -56,20 +57,11 @@ class RouteMapService extends BaseService {
       var decodedResponse = <String, dynamic>{};
       decodedResponse = json.decode(resp.body);
       if (decodedResponse.containsKey('result')) {
-        if (decodedResponse['result']['ok']) {
-          print(decodedResponse['result']['result']);
-          var lines = RouteMapService().getRouteMapLineModel(
-              decodedResponse['result']['result']['Lines']);
-          RouteMapModel model = RouteMapModel(
-              id: decodedResponse['result']['result']['Id'],
-              name: decodedResponse['result']['result']['Name'],
-              sell: decodedResponse['result']['result']['Sell'],
-              lines: lines);
-          return model;
-        }
-        else{
-          return new RouteMapModel();
-        }
+        RouteMapModel model = new RouteMapModel();
+        model.name = decodedResponse['result']['display_name'];
+        model.sell = decodedResponse['result']['sell'] != false ? decodedResponse['result']['sell'] : '';
+        model.lines = getRouteMapLineModel(decodedResponse['result']['dispatch_ids']);
+        return model;
       }
     }
   }
@@ -83,16 +75,15 @@ class RouteMapService extends BaseService {
   List<RouteMapLineModel> getRouteMapLineModel(dynamic lines) {
     List<RouteMapLineModel> list = [];
     for (var map in lines) {
-      var products = getProductModel(map['Products']);
-      var destinyGps = LatLng(map['LatitudeDestiny'], map['LongitudeDestiny']);
-      list.add(RouteMapLineModel(
-          id: map['Id'],
-          destiny: map['Destiny'],
-          state: map['State'],
-          destinyGPS: destinyGps,
-          address: map['Address'],
-          productToDelivery: products));
-    }
+    var destinyGps = LatLng(map[0]['partner_latitude'], map[0]['partner_longitude']);
+    print(map);
+    list.add(RouteMapLineModel(
+           id: map[0]['id'],
+           destiny: map[0]['partner_id'][1],
+           state: map[0]['state'],
+           destinyGPS: destinyGps,
+           address: map[0]['address_to_delivery'] != false ? map[0]['address_to_delivery'] : '',type: map[0]['picking_code']));
+     }
     return list;
   }
 
@@ -105,7 +96,12 @@ class RouteMapService extends BaseService {
   }
 
   Future<Map<String, dynamic>> makeDone(
-      int lineId, dynamic latitude, dynamic longitude,String state,String observations,List<String> files) async {
+      int lineId,
+      dynamic latitude,
+      dynamic longitude,
+      String state,
+      String observations,
+      List<String> files) async {
     final endpoint = Uri.parse("${url}/api/done");
     List<String> fileB64 = getListBase64(files);
     final data = {
@@ -115,7 +111,7 @@ class RouteMapService extends BaseService {
         'longitude': longitude,
         'state': state,
         'observations': observations,
-        'files': fileB64.length > 0 ? fileB64 : []
+        'files': fileB64.length > 0 ? fileB64 : [],
       }
     };
     final resp = await http.post(endpoint,
@@ -145,9 +141,7 @@ class RouteMapService extends BaseService {
 
   Future<List<S2Choice<String>>> getState() async {
     final endpoint = Uri.parse('${url}/api/states');
-    final params = {
-      "params": {"field_id": 14247}
-    };
+    final params = {};
     final resp = await http.post(endpoint,
         headers: {
           "content-type": 'Application/json',
@@ -160,16 +154,15 @@ class RouteMapService extends BaseService {
       decodedResponse = json.decode(resp.body);
       if (decodedResponse.containsKey('result')) {
         for (var dec in decodedResponse['result']) {
-          choices.add(S2Choice(value: dec['Value'], title: dec['Name']));
+          choices.add(S2Choice(value: dec['value'], title: dec['name']));
         }
         return choices;
       }
     }
   }
 
-
-  List<String> getListBase64(List<String> filesPath ) {
-    if(filesPath != null || filesPath.length != 0){
+  List<String> getListBase64(List<String> filesPath) {
+    if (filesPath != null || filesPath.length != 0) {
       List<String> listBase64 = [];
       for (var file in filesPath) {
         var fileObject = File(file);

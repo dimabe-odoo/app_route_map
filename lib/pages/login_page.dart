@@ -169,15 +169,7 @@ class _LoginPageState extends State<LoginPage> {
         GFButton(
             onPressed: () {
               setState(() {
-                AuthService()
-                    .changePassword(changePassController.text)
-                    .then((value) {
-                  if (!value['ok']) {
-                    Toast.show(value['message'], context);
-                  }
-                }).whenComplete(() {
-                  showAlert(context, "Cambio de Contraseña", "Se ha enviado correo para restablecer la contraseña");
-                });
+
               });
             },
             text: "Confirmar")

@@ -1,5 +1,5 @@
 class BaseService{
-  final url = 'https://dimabe-odoo-ambienteslimpiossa-test-2361998.dev.odoo.com';
+  final url = 'http://192.168.100.88:8069';
 
   bool isSuccessCode(int code) => code >= 200 && code < 300;
 }

@@ -6,6 +6,7 @@ import 'package:apk_route_map/services/route_map_service.dart';
 import 'package:apk_route_map/widgets/appbar_widget.dart';
 import 'package:apk_route_map/widgets/drawer_widget.dart';
 import 'package:async_builder/async_builder.dart';
+import 'package:dtabs/dtabs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_slider_drawer/flutter_slider_drawer.dart';
@@ -44,12 +45,6 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     routes = RouteMapService().getRouteMaps();
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    routes = RouteMapService().getRouteMaps();
     Future.delayed(const Duration(seconds: 0), () async {
       if (_prefs.token == '' || _prefs.token == null) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -59,28 +54,75 @@ class HomePageState extends State<HomePage> {
             (route) => false);
       }
     });
-    return Scaffold(
-        drawer: DrawerWidget(name: _prefs.name,email: _prefs.email != null ? _prefs.email : ''),
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(50.0),
-          child: AppbarWidget(
-            name: _prefs.name,
-          ),
-        ),
-        body: body(context, routes));
+    super.initState();
   }
 
-  Widget body(BuildContext context, Future<List<RouteMapModel>> route) {
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+        length: 2,
+        child: Scaffold(
+            drawer: DrawerWidget(
+                name: _prefs.name,
+                email: _prefs.email != null ? _prefs.email : ''),
+            appBar: PreferredSize(
+              preferredSize: Size.fromHeight(50.0),
+              child: AppbarWidget(
+                name: _prefs.name,
+              ),
+            ),
+            body: tabs(context, routes)));
+  }
+
+  Widget tabs(context, routes) {
+    final TabController tabController = DefaultTabController.of(context);
     return AsyncBuilder(
-      future: route,
+      future: routes,
+      error: (context, error, stackTrace) => GFLoader(),
       waiting: (context) => GFLoader(),
-      error: (context, error, stackTrace) => Center(
-        child: Text("No tiene hojas de ruta activas"),
-      ),
-      builder: (context, List<RouteMapModel> value) {
-        return list(context, value);
+      builder: (context, value) {
+        return GFTabs(
+          length: 2,
+          initialIndex: 0,
+          tabs: <Widget>[
+            Tab(icon: Icon(FontAwesomeIcons.truck), child: Text("Clientes")),
+            Tab(icon: Icon(FontAwesomeIcons.truck), child: Text("Otros")),
+          ],
+          tabBarView: tabView(value),
+        );
       },
     );
+  }
+
+  Widget tabView(List<RouteMapModel> routes) {
+    return GFTabBarView(children: <Widget>[
+      Container(
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        child: tab(
+            context,
+            routes.where((element) => element.type == 'client').toList(),
+            'client'),
+      ),
+      Container(
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        child: tab(
+            context,
+            routes.where((element) => element.type == 'other').toList(),
+            'other'),
+      ),
+    ]);
+  }
+
+  Widget tab(BuildContext context, List<RouteMapModel> route, String type) {
+    return route.where((element) => element.type == type).toList().length >
+                0
+        ? list(context,
+            route.where((element) => element.type == type).toList())
+        : Center(
+            child: Text("No tiene hojas de ruta activas"),
+          );
   }
 
   Widget list(BuildContext context, List<RouteMapModel> route) {

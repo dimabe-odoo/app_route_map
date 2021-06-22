@@ -11,7 +11,6 @@ import 'package:async_builder/async_builder.dart';
 import 'package:badges/badges.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_absolute_path/flutter_absolute_path.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:getwidget/components/accordian/gf_accordian.dart';
@@ -140,7 +139,9 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
           boxFit: BoxFit.fill,
           elevation: 5.0,
           title: GFListTile(
-            titleText: "Detalle de ${value.name}",
+            titleText: value.name != null
+                ? "Detalle de ${value.name}"
+                : "Detalle de Ruta",
             avatar: GFIconBadge(
               child: Icon(FontAwesomeIcons.map),
             ),
@@ -173,8 +174,16 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
       List<RouteMapLineModel> lines, LatLng current) {
     List<AccordionSection> sections = [];
     for (var line in lines) {
-      print(line.state);
       sections.add(AccordionSection(
+          leftIcon: line.type == 'OUT'
+              ? Icon(
+                  FontAwesomeIcons.truckMoving,
+                  color: Colors.white,
+                )
+              : Icon(
+                  FontAwesomeIcons.truckLoading,
+                  color: Colors.white,
+                ),
           rightIcon: line.state == 'ok'
               ? Icon(FontAwesomeIcons.check, color: Colors.white)
               : line.state == 'parcial'
@@ -240,7 +249,9 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
       content: Wrap(
         children: <Widget>[
           selectState(),
-          Divider(height: 20,),
+          Divider(
+            height: 20,
+          ),
           TextFormField(
             validator: (value) {
               if (choice != 'ok' && value == '') {
@@ -253,10 +264,11 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
             decoration:
                 InputDecoration.collapsed(hintText: "Ingresar Observaciones"),
           ),
-          Divider(height: 20,),
+          Divider(
+            height: 20,
+          ),
           Center(
             child: GFButtonBadge(
-
               blockButton: true,
               icon: GFBadge(
                 color: Colors.white,
@@ -299,7 +311,7 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
   }
 
   Future<void> addImage() async {
-    final pickedFile = await _picker.getImage(source: ImageSource.camera);
+    final pickedFile = await _picker.getImage(source: ImageSource.gallery);
 
     setState(() {
       if (pickedFile != null) {
@@ -317,7 +329,6 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
       waiting: (context) => Loader(),
       builder: (context, value) {
         return SmartSelect.single(
-
           onChange: (value) {
             setState(() {
               choice = value.value;
@@ -338,7 +349,16 @@ class DetailRouteMapPageState extends State<DetailRouteMapPage> {
       RouteMapService()
           .makeDone(line.id, current.latitude, current.longitude, state,
               observations, files)
-          .whenComplete(() => Navigator.of(context).pushAndRemoveUntil(
+          .then((value) {
+        if (value['isCompleted'] == true) {
+          Toast.show(value['message'], context);
+          Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => HomePage(),
+              ),
+              (route) => false);
+        }
+      }).whenComplete(() => Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(
                 builder: (context) => DetailRouteMapPage(
                   routeMapId: widget.routeMapId,

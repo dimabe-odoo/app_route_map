@@ -42,8 +42,8 @@ dependencies:
   flutter_swiper: 
   google_maps_flutter: 
   location:
-  image_picker: ^0.7.5+2
-  flutter_absolute_path: 
+  image_picker: ^0.8.0+3
+  drag_and_drop_lists: ^0.3.2
   dio:
   accordion: 
   smart_select: 
@@ -54,6 +54,8 @@ dependencies:
   flutter_slider_drawer:
   owesome_validator:
   badges:
+  bottom_navy_bar: ^5.6.0
+  dtabs: ^0.0.2+2
   flutter_localizations:
     sdk: flutter
 dev_dependencies:
